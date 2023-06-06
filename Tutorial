@@ -1,0 +1,296 @@
+MARK: - Video 3/12
+import SwiftUI
+
+struct ContentView: View {
+    @State private var showingConfirmation = false
+    @State private var backgroundColor = Color.white
+
+    var body: some View {
+        Text("Hello world")
+            .frame(width: 300, height: 300)
+            .background(backgroundColor)
+            .onTapGesture {
+                showingConfirmation = true
+            }
+            .confirmationDialog("Change background", isPresented: $showingConfirmation) {
+                Button("Red") { backgroundColor = .red}
+                Button("Green") { backgroundColor = .green}
+                Button("Blue") { backgroundColor = .blue}
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Select a new color")
+            
+            }
+        }
+    }
+
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}
+
+
+MARK: - Video 4/12
+
+
+import CoreImage
+import CoreImage.CIFilterBuiltins
+import SwiftUI
+
+struct ContentView: View {
+    @State private var image: Image?
+    var body: some View {
+        VStack {
+            image?
+                .resizable()
+                .scaledToFit()
+            
+        }
+        .onAppear(perform: loadImage)
+    }
+    func loadImage() {
+        guard let inputImage = UIImage(named: "Example") else { return }
+        let beginImage = CIImage(image: inputImage)
+        
+        let context = CIContext()
+        let currentFilter = CIFilter.dither()
+        //.pixelate or .twirlDistortion() or crystallize or sepiaTone
+        currentFilter.inputImage = beginImage
+        
+        let amount = 1.0
+        let inputKeys = currentFilter.inputKeys
+        
+        if inputKeys.contains(kCIInputIntensityKey) {
+            currentFilter.setValue(amount, forKey: kCIInputIntensityKey)
+        }
+        
+        if inputKeys.contains(kCIInputRadiusKey) {
+            currentFilter.setValue(amount * 200, forKey: kCIInputRadiusKey)
+        }
+        
+        if inputKeys.contains(kCIInputScaleKey) {
+            currentFilter.setValue(amount * 10, forKey: kCIInputScaleKey)
+        }
+        
+        if inputKeys.contains(kCIInputIntensityKey) {
+            currentFilter.setValue(amount, forKey: kCIInputIntensityKey)
+        }
+        
+//        currentFilter.radius = 1000
+//        currentFilter.center = CGPoint(x: inputImage.size.width / 2, y: inputImage.size.height / 2)
+//        // .radius or
+//
+        guard let outputImage = currentFilter.outputImage else { return }
+        
+        if let cgimg = context.createCGImage(outputImage, from: outputImage.extent) {
+         let uiImage = UIImage(cgImage: cgimg)
+            image = Image(uiImage: uiImage)
+        }
+            
+    }
+}
+
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}
+
+
+MARK: - 5/12 video
+
+We had to create new FILE Image Picker
+
+import PhotosUI
+import SwiftUI
+
+struct ImagePicker: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        
+        let picker = PHPickerViewController(configuration: config)
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {
+        
+    }
+}
+
+::::::CONTENTVIEW::::::::
+
+import SwiftUI
+
+struct ContentView: View {
+    @State private var image: Image?
+    @State private var showingImagePicker = false
+
+    var body: some View {
+        VStack{
+            image?
+                .resizable()
+                .scaledToFit()
+            
+            Button("Select Image") {
+                showingImagePicker = true
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker()
+        }
+    }
+}
+
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}
+
+
+
+
+MARK: - 6/12 VIDEO
+
+we added new FIle ImagePicker
+
+import PhotosUI
+import SwiftUI
+
+struct ImagePicker: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    
+    class Coordinator: NSObject, PHPickerViewControllerDelegate {
+        
+        
+        var parent: ImagePicker
+        
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+        
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            picker.dismiss(animated: true)
+            
+            guard let provider = results.first?.itemProvider else { return }
+            
+            if provider.canLoadObject(ofClass: UIImage.self) {
+                provider.loadObject(ofClass: UIImage.self) { image, _ in
+                    self.parent.image = image as? UIImage
+                }
+            }
+        }
+    }
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {
+        
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+}
+
+
+:::::COntentVIew:::::::::
+
+import SwiftUI
+
+struct ContentView: View {
+    @State private var image: Image?
+    @State private var inputImage: UIImage?
+    @State private var showingImagePicker = false
+
+    var body: some View {
+        VStack{
+            image?
+                .resizable()
+                .scaledToFit()
+            
+            Button("Select Image") {
+                showingImagePicker = true
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(image: $inputImage)
+        }
+        .onChange(of: inputImage) { _ in loadImage()}
+    }
+    
+    func loadImage() {
+        guard let inputImage = inputImage else { return }
+        image = Image(uiImage: inputImage)
+    }
+}
+
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}
+
+
+MARK: - 7/12 Video
+
+New FIle was added which remains in core project (Saver)
+
+ContentView
+
+import SwiftUI
+
+struct ContentView: View {
+    @State private var image: Image?
+    @State private var inputImage: UIImage?
+    @State private var showingImagePicker = false
+
+    var body: some View {
+        VStack{
+            image?
+                .resizable()
+                .scaledToFit()
+            
+            Button("Select Image") {
+                showingImagePicker = true
+            }
+            
+            Button("Save Image") {
+                guard let inputImage = inputImage else { return }
+
+                let imageSaver = ImageSaver()
+                imageSaver.wrtiteToPhotoAlbum(image: inputImage)
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(image: $inputImage)
+        }
+        .onChange(of: inputImage) { _ in loadImage()}
+    }
+    
+    func loadImage() {
+        guard let inputImage = inputImage else { return }
+        image = Image(uiImage: inputImage)
+        
+//        UIImageWriteToSavedPhotosAlbum(inputImage, nil, nil, nil)
+    }
+}
+
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}
